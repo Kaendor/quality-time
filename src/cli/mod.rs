@@ -1,5 +1,5 @@
-mod formats;
 mod concurrent;
+pub mod formats;
 
 use std::cmp::Ordering;
 use std::collections::{hash_map, HashMap};
@@ -10,7 +10,7 @@ use std::thread::available_parallelism;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Parser;
-use concurrent::{FilesData, ConcurrentRunner};
+use concurrent::{ConcurrentRunner, FilesData};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
 use formats::Format;
@@ -20,9 +20,8 @@ use rust_code_analysis::LANG;
 
 // Structs
 use rust_code_analysis::{
-    CommentRm, CommentRmCfg,  Count, CountCfg, Dump, DumpCfg,  Find,
-    FindCfg, Function, FunctionCfg, Metrics, MetricsCfg, OpsCfg, OpsCode, PreprocParser,
-    PreprocResults,
+    CommentRm, CommentRmCfg, Count, CountCfg, Dump, DumpCfg, Find, FindCfg, Function, FunctionCfg,
+    Metrics, MetricsCfg, OpsCfg, OpsCode, PreprocParser, PreprocResults,
 };
 
 // Functions
@@ -104,9 +103,34 @@ pub struct Opts {
     #[clap(long, short)]
     warning: bool,
 }
+impl Opts {
+    pub fn from_path(path: PathBuf) -> Self {
+        Self {
+            paths: vec![path],
+            dump: false,
+            comments: false,
+            find: vec![],
+            function: false,
+            count: vec![],
+            metrics: true,
+            ops: false,
+            in_place: false,
+            include: vec![],
+            exclude: vec![],
+            num_jobs: None,
+            language_type: Some(String::from("rust")),
+            output_format: Some(Format::Json),
+            pretty: false,
+            output: None,
+            preproc: vec![],
+            line_start: None,
+            line_end: None,
+            warning: false,
+        }
+    }
+}
 
 pub fn start_cli(opts: Opts) {
-    
     let count_lock = if !opts.count.is_empty() {
         Some(Arc::new(Mutex::new(Count::default())))
     } else {
@@ -258,7 +282,7 @@ fn act_on_file(path: PathBuf, cfg: &Config) -> std::io::Result<()> {
     let source = if let Some(source) = read_file_with_eol(&path)? {
         source
     } else {
-        return Ok(()) 
+        return Ok(());
     };
 
     let language = if let Some(language) = cfg.language {
@@ -355,5 +379,3 @@ fn process_dir_path(all_files: &mut HashMap<String, Vec<PathBuf>>, path: &Path, 
         };
     }
 }
-
-

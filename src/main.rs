@@ -6,6 +6,9 @@ use std::{collections::HashMap, env};
 
 use git_repository::{discover, objs::tree::EntryMode, traverse::tree::Recorder, Commit};
 
+use crate::cli::formats::Format;
+use crate::cli::{start_cli, Opts};
+
 #[derive(Debug)]
 struct MyError {}
 
@@ -21,11 +24,18 @@ impl Error for MyError {
     }
 }
 
+#[derive(Debug, Clone)]
+struct FileMetrics {
+    filename: String,
+    churn: i32,
+    complexity: i32,
+}
+
 fn main() {
     // let opts = Opts::parse();
+    let mut current_dir = env::current_dir().expect("current dir");
 
-    // start_cli(opts);
-    let repo = discover(env::current_dir().expect("current dir")).expect("repo");
+    let repo = discover(current_dir.clone()).expect("repo");
 
     let head = repo.head_commit().expect("head");
     let mut change_map = HashMap::new();
@@ -34,8 +44,6 @@ fn main() {
         let object = reference.object().expect("object");
 
         let commit: Commit = Commit::try_from(object).expect("commit");
-
-        dbg!(commit.message());
 
         let change_tree = commit.tree().expect("tree");
 
@@ -46,7 +54,6 @@ fn main() {
 
         for entry in recorder.records {
             if let &EntryMode::Blob = &entry.mode {
-                dbg!(&entry.filepath);
                 if change_map.contains_key(&entry.filepath) {
                     change_map
                         .entry(entry.filepath)
@@ -56,7 +63,21 @@ fn main() {
                 }
             }
         }
-
-        dbg!(&change_map);
     }
+
+    let results: Vec<FileMetrics> = change_map
+        .into_iter()
+        .map(|(filename, churn)| FileMetrics {
+            churn,
+            filename: filename.to_string(),
+            complexity: 0,
+        })
+        .collect();
+
+    dbg!(results);
+
+    current_dir.push("src");
+    let opts = Opts::from_path(current_dir);
+
+    start_cli(opts);
 }
