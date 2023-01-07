@@ -17,3 +17,4 @@ serde_yaml = "^0.9"
 toml = "^0.5"
 walkdir = "^2.3"
 crossbeam = { version = "^0.8", features = ["crossbeam-channel"] }
+git-repository = "0.31.0"
