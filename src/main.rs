@@ -1,13 +1,10 @@
-mod cli;
-
 use std::error::Error;
 use std::fmt;
+use std::path::Path;
 use std::{collections::HashMap, env};
 
 use git_repository::{discover, objs::tree::EntryMode, traverse::tree::Recorder, Commit};
-
-use crate::cli::formats::Format;
-use crate::cli::{start_cli, Opts};
+use rust_code_analysis::{metrics, read_file_with_eol, ParserTrait, RustParser};
 
 #[derive(Debug)]
 struct MyError {}
@@ -28,7 +25,7 @@ impl Error for MyError {
 struct FileMetrics {
     filename: String,
     churn: i32,
-    complexity: i32,
+    complexity: f64,
 }
 
 fn main() {
@@ -64,20 +61,28 @@ fn main() {
             }
         }
     }
+    current_dir.push("src");
 
     let results: Vec<FileMetrics> = change_map
         .into_iter()
-        .map(|(filename, churn)| FileMetrics {
-            churn,
-            filename: filename.to_string(),
-            complexity: 0,
+        .map(|(filename, churn)| {
+            let filename = filename.to_string();
+            let path = Path::new(&filename);
+
+            let source = read_file_with_eol(path)
+                .expect("source")
+                .expect("option source");
+
+            let parser = RustParser::new(source, path, None);
+            let metrics = metrics(&parser, path).expect("metrics");
+
+            FileMetrics {
+                churn,
+                filename: filename.to_string(),
+                complexity: metrics.metrics.cyclomatic.cyclomatic_sum(),
+            }
         })
         .collect();
 
     dbg!(results);
-
-    current_dir.push("src");
-    let opts = Opts::from_path(current_dir);
-
-    start_cli(opts);
 }
