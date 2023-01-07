@@ -1,3 +1,10 @@
+mod cli;
+
+use clap::Parser;
+use cli::{Opts, start_cli};
+
 fn main() {
-    println!("Hello, world!");
+    let opts = Opts::parse();
+
+    start_cli(opts);
 }
