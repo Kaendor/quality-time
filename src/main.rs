@@ -1,8 +1,6 @@
 use std::env;
 
-use git_repository::discover;
-
-use crate::git::change_count_per_file;
+use crate::git::change_count_in_path;
 use crate::metrics::metrics_per_file;
 use crate::output::{print_output, OutputMode};
 
@@ -18,9 +16,7 @@ fn main() {
     let path_to_repo = env::current_dir().expect("current dir");
     let output = OutputMode::StdOut;
 
-    let repo = discover(path_to_repo).expect("repo");
-
-    let change_map = change_count_per_file(repo);
+    let change_map = change_count_in_path(path_to_repo);
 
     let results = metrics_per_file(change_map);
 

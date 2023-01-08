@@ -1,7 +1,14 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use git_repository::Repository;
-use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit};
+use git_repository::{discover, objs::tree::EntryMode, traverse::tree::Recorder, Commit};
+
+pub fn change_count_in_path(path: PathBuf) -> HashMap<String, i32> {
+    let repo = discover(path).expect("Repository not found or without commits");
+
+    change_count_per_file(repo)
+}
 
 pub fn change_count_per_file(repository: Repository) -> HashMap<String, i32> {
     let head = repository.head_commit().expect("head");
