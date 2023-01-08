@@ -1,54 +1,30 @@
+use std::env;
 use std::path::Path;
-use std::{collections::HashMap, env};
 
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
-use git_repository::{discover, objs::tree::EntryMode, traverse::tree::Recorder, Commit};
+use git_repository::discover;
 use rust_code_analysis::{metrics, read_file_with_eol, ParserTrait, RustParser};
 
+use crate::git::change_count_per_file;
 use crate::metrics::FileMetrics;
 
+mod git;
 mod metrics;
 
+// TODO: Use local error type instead of expects
 fn main() {
-    let current_dir = env::current_dir().expect("current dir");
+    let path_to_repo = env::current_dir().expect("current dir");
 
-    let repo = discover(current_dir).expect("repo");
+    let repo = discover(path_to_repo).expect("repo");
 
-    let head = repo.head_commit().expect("head");
-    let mut change_map = HashMap::new();
-
-    for reference in head.ancestors().all().expect("all refs").flatten() {
-        let object = reference.object().expect("object");
-
-        let commit: Commit = Commit::try_from(object).expect("commit");
-
-        let change_tree = commit.tree().expect("tree");
-
-        let changes = change_tree.traverse();
-
-        let mut recorder = Recorder::default();
-        let _ = changes.breadthfirst(&mut recorder);
-
-        for entry in recorder.records {
-            if let &EntryMode::Blob = &entry.mode {
-                match change_map.entry(entry.filepath) {
-                    std::collections::hash_map::Entry::Occupied(mut e) => {
-                        *e.get_mut() += 1;
-                    }
-                    std::collections::hash_map::Entry::Vacant(e) => {
-                        e.insert(1);
-                    }
-                }
-            }
-        }
-    }
+    let change_map = change_count_per_file(repo);
 
     let results: Vec<FileMetrics> = change_map
         .into_iter() // TODO: parallelize
         .filter_map(|(filename, churn)| {
-            let filename = filename.to_string();
+            let filename = filename;
             let path = Path::new(&filename);
 
             let complexity = read_file_with_eol(path)
