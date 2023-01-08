@@ -2,20 +2,30 @@ use std::{collections::HashMap, path::Path};
 
 use rust_code_analysis::{metrics, read_file_with_eol, ParserTrait, RustParser};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FileMetrics {
     pub filename: String,
     pub churn: i32,
     pub complexity: f64,
+    pub magnitude: f64,
 }
 
 impl FileMetrics {
     pub fn new(filename: String, churn: i32, complexity: f64) -> Self {
+        let origin = (0.0, 0.0);
+        let distance_to_origin =
+            ((origin.0 - churn as f64).powi(2) + (origin.1 - complexity as f64).powi(2)).sqrt();
+
         Self {
             filename,
             churn,
             complexity,
+            magnitude: distance_to_origin,
         }
+    }
+
+    pub fn to_point(&self) -> (f64, f64) {
+        (self.churn as f64, self.complexity)
     }
 }
 
