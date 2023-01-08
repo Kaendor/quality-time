@@ -3,8 +3,12 @@ use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 
+use self::app::run_app;
+
+mod app;
 pub enum OutputMode {
     StdOut,
+    App,
 }
 
 pub fn print_output(output_mode: OutputMode, metrics: Vec<FileMetrics>) {
@@ -25,6 +29,9 @@ pub fn print_output(output_mode: OutputMode, metrics: Vec<FileMetrics>) {
             }
 
             println!("{table}");
+        }
+        OutputMode::App => {
+            run_app(metrics);
         }
     }
 }

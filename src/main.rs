@@ -14,7 +14,7 @@ mod output;
 // TODO: Add repo path configurable
 fn main() {
     let path_to_repo = env::current_dir().expect("current dir");
-    let output = OutputMode::StdOut;
+    let output = OutputMode::App;
 
     let change_map = change_count_in_path(path_to_repo);
 
