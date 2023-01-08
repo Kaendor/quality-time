@@ -1,15 +1,15 @@
 use std::path::Path;
 use std::{collections::HashMap, env};
 
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::Table;
 use git_repository::{discover, objs::tree::EntryMode, traverse::tree::Recorder, Commit};
 use rust_code_analysis::{metrics, read_file_with_eol, ParserTrait, RustParser};
 
-#[derive(Debug, Clone)]
-struct FileMetrics {
-    filename: String,
-    churn: i32,
-    complexity: f64,
-}
+use crate::metrics::FileMetrics;
+
+mod metrics;
 
 fn main() {
     let current_dir = env::current_dir().expect("current dir");
@@ -46,7 +46,7 @@ fn main() {
     }
 
     let results: Vec<FileMetrics> = change_map
-        .into_iter()
+        .into_iter() // TODO: parallelize
         .filter_map(|(filename, churn)| {
             let filename = filename.to_string();
             let path = Path::new(&filename);
@@ -59,13 +59,23 @@ fn main() {
                 })
                 .map(|metrics| metrics.metrics.cyclomatic.cyclomatic_sum());
 
-            complexity.map(|complexity| FileMetrics {
-                churn,
-                filename: filename.to_string(),
-                complexity,
-            })
+            complexity.map(|complexity| FileMetrics::new(filename.to_string(), churn, complexity))
         })
         .collect();
 
-    dbg!(results);
+    let mut table = Table::new();
+    table
+        .set_header(vec!["Filename", "Churn", "Complexity"])
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS);
+
+    for metric in results.iter() {
+        table.add_row(vec![
+            &metric.filename,
+            &metric.churn.to_string(),
+            &metric.complexity.to_string(),
+        ]);
+    }
+
+    println!("{table}");
 }
