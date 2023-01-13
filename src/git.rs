@@ -36,7 +36,7 @@ impl RepositoryExplorer for Gitoxide {
             .expect("all refs")
             .flatten()
             .flat_map(|reference| reference.object())
-            .flat_map(|object| Commit::try_from(object))
+            .flat_map(Commit::try_from)
             .collect();
 
         Ok(commits)
