@@ -1,45 +1,76 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use eyre::{Result, WrapErr};
 use git_repository::Repository;
 use git_repository::{discover, objs::tree::EntryMode, traverse::tree::Recorder, Commit};
 
-pub fn change_count_in_path(path: PathBuf) -> HashMap<String, i32> {
-    let repo = discover(path).expect("Repository not found or without commits");
+pub fn change_count_in_path(path: PathBuf) -> Result<HashMap<String, i32>> {
+    let repository = discover(path).expect("Repository not found or without commits");
 
-    change_count_per_file(repo)
+    let git = Gitoxide { repository };
+
+    git.change_count_per_file()
 }
 
-pub fn change_count_per_file(repository: Repository) -> HashMap<String, i32> {
-    let head = repository.head_commit().expect("head");
-    let mut change_map = HashMap::new();
+trait RepositoryExplorer {
+    fn commits(&self) -> Result<Vec<Commit>>;
 
-    // TODO: optimize git lookup
-    for reference in head.ancestors().all().expect("all refs").flatten() {
-        let object = reference.object().expect("object");
+    fn change_count_per_file(&self) -> Result<HashMap<String, i32>>;
+}
 
-        let commit: Commit = Commit::try_from(object).expect("commit");
+struct Gitoxide {
+    repository: Repository,
+}
 
-        let change_tree = commit.tree().expect("tree");
+impl RepositoryExplorer for Gitoxide {
+    fn commits(&self) -> Result<Vec<Commit>> {
+        let head = self
+            .repository
+            .head_commit()
+            .wrap_err("Unable to get the head of the repo")?;
+        // TODO: optimize git lookup
+        let commits = head
+            .ancestors()
+            .all()
+            .expect("all refs")
+            .flatten()
+            .flat_map(|reference| reference.object())
+            .flat_map(|object| Commit::try_from(object))
+            .collect();
 
-        let changes = change_tree.traverse();
+        Ok(commits)
+    }
 
-        let mut recorder = Recorder::default();
-        let _ = changes.breadthfirst(&mut recorder);
+    fn change_count_per_file(&self) -> Result<HashMap<String, i32>> {
+        let mut change_map = HashMap::new();
 
-        for entry in recorder.records {
-            if let &EntryMode::Blob = &entry.mode {
-                match change_map.entry(entry.filepath.to_string()) {
-                    std::collections::hash_map::Entry::Occupied(mut e) => {
-                        *e.get_mut() += 1;
-                    }
-                    std::collections::hash_map::Entry::Vacant(e) => {
-                        e.insert(1);
+        let commits = self
+            .commits()
+            .wrap_err("Unable to get all the commit for the repo")?;
+
+        for commit in commits {
+            let change_tree = commit.tree().expect("tree");
+
+            let changes = change_tree.traverse();
+
+            let mut recorder = Recorder::default();
+            let _ = changes.breadthfirst(&mut recorder);
+
+            for entry in recorder.records {
+                if let &EntryMode::Blob = &entry.mode {
+                    match change_map.entry(entry.filepath.to_string()) {
+                        std::collections::hash_map::Entry::Occupied(mut e) => {
+                            *e.get_mut() += 1;
+                        }
+                        std::collections::hash_map::Entry::Vacant(e) => {
+                            e.insert(1);
+                        }
                     }
                 }
             }
         }
-    }
 
-    change_map
+        Ok(change_map)
+    }
 }
