@@ -4,8 +4,12 @@ use tui::{
     widgets::{Axis, Block, Borders, Chart, Dataset},
 };
 
-pub fn complexity_churn_threshold(x: f64, complexity_threshold: f64, churn_threshold: f64) -> f64 {
-    (100f64 / x - churn_threshold) + complexity_threshold
+pub fn complexity_churn_threshold(
+    churn: f64,
+    complexity_threshold: f64,
+    churn_threshold: f64,
+) -> f64 {
+    (100f64 / churn - churn_threshold) + complexity_threshold
 }
 
 pub fn create_chart(datasets: Vec<Dataset>, maximum_churn: f64, maximum_complexity: f64) -> Chart {
@@ -48,4 +52,15 @@ pub fn create_chart(datasets: Vec<Dataset>, maximum_churn: f64, maximum_complexi
                     ),
                 ]),
         )
+}
+
+mod tests {
+    use super::complexity_churn_threshold;
+
+    #[test]
+    fn threshold() {
+        let result = complexity_churn_threshold(2.0, 10.0, 10.0);
+        assert!(result > 0.0);
+        assert!(result < 100.0);
+    }
 }
