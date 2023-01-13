@@ -33,7 +33,6 @@ pub fn metrics_per_file(file_map: HashMap<String, i32>) -> Vec<FileMetrics> {
     file_map
         .into_iter() // TODO: parallelize
         .filter_map(|(filename, churn)| {
-            let filename = filename;
             let path = Path::new(&filename);
 
             let complexity = read_file_with_eol(path)

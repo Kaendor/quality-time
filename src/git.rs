@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use eyre::{Result, WrapErr};
-use git_repository::Repository;
+use git_repository::{discover, Repository};
 use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit};
 
 pub trait RepositoryExplorer {
@@ -14,8 +15,10 @@ pub struct Gitoxide {
     repository: Repository,
 }
 impl Gitoxide {
-    pub fn new(repository: Repository) -> Self {
-        Self { repository }
+    pub fn try_new(path_to_repo: PathBuf) -> Result<Self> {
+        let repository =
+            discover(path_to_repo).wrap_err("Repository not found or without commits")?;
+        Ok(Self { repository })
     }
 }
 
