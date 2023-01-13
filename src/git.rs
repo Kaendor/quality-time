@@ -1,26 +1,22 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use eyre::{Result, WrapErr};
 use git_repository::Repository;
-use git_repository::{discover, objs::tree::EntryMode, traverse::tree::Recorder, Commit};
+use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit};
 
-pub fn change_count_in_path(path: PathBuf) -> Result<HashMap<String, i32>> {
-    let repository = discover(path).expect("Repository not found or without commits");
-
-    let git = Gitoxide { repository };
-
-    git.change_count_per_file()
-}
-
-trait RepositoryExplorer {
+pub trait RepositoryExplorer {
     fn commits(&self) -> Result<Vec<Commit>>;
 
     fn change_count_per_file(&self) -> Result<HashMap<String, i32>>;
 }
 
-struct Gitoxide {
+pub struct Gitoxide {
     repository: Repository,
+}
+impl Gitoxide {
+    pub fn new(repository: Repository) -> Self {
+        Self { repository }
+    }
 }
 
 impl RepositoryExplorer for Gitoxide {
