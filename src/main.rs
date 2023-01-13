@@ -1,15 +1,11 @@
 use clap::Parser;
-use eyre::{Context, Result};
-use git::{Gitoxide, RepositoryExplorer};
-use git_repository::discover;
+use eyre::Result;
 use std::env;
 
-use crate::metrics::metrics_per_file;
-use crate::output::{print_output, OutputMode};
-
-mod git;
-mod metrics;
-mod output;
+use quality_time::{
+    get_metrics,
+    output::{print_output, OutputMode},
+};
 
 /// Simple program to get complexity and churn metrics
 #[derive(Parser, Debug)]
@@ -22,19 +18,10 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-
     let output = args.output.unwrap_or(OutputMode::StdOut);
-
     let path_to_repo = env::current_dir().expect("current dir");
-    let repository = discover(path_to_repo).expect("Repository not found or without commits");
 
-    let git_explorer = Gitoxide::new(repository);
-
-    let change_map = git_explorer
-        .change_count_per_file()
-        .wrap_err("Unable to obtain the change count per file")?;
-
-    let results = metrics_per_file(change_map);
+    let results = get_metrics(path_to_repo)?;
 
     print_output(output, results);
 
