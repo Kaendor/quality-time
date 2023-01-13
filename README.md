@@ -13,3 +13,6 @@ Provide simple actionable metric.
 - [ ] Add ignoring file possible
 - [ ] Add repo path configurable
 - [ ] Support more langages
+- [ ] Add time range configurable
+- [ ] Add shortcut display in TUI
+- [ ] Add marks on the axis for the selected file
