@@ -1,4 +1,5 @@
 use crate::metrics::FileMetrics;
+use clap::ValueEnum;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
@@ -6,9 +7,13 @@ use comfy_table::Table;
 use self::app::run_app;
 
 mod app;
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum OutputMode {
+    /// Print the results in the terminal as a human readable table
     StdOut,
-    App,
+    /// DIsplay the results with a graph in a terminal application
+    Tui,
 }
 
 pub fn print_output(output_mode: OutputMode, mut metrics: Vec<FileMetrics>) {
@@ -30,7 +35,7 @@ pub fn print_output(output_mode: OutputMode, mut metrics: Vec<FileMetrics>) {
 
             println!("{table}");
         }
-        OutputMode::App => {
+        OutputMode::Tui => {
             metrics.sort_by(|a, b| a.magnitude.partial_cmp(&b.magnitude).unwrap());
 
             metrics.reverse();

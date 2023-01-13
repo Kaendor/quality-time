@@ -1,3 +1,4 @@
+use clap::Parser;
 use std::env;
 
 use crate::git::change_count_in_path;
@@ -8,9 +9,20 @@ mod git;
 mod metrics;
 mod output;
 
+/// Simple program to get complexity and churn metrics
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Output style of the CLI
+    #[arg(short, long, value_enum)]
+    output: Option<OutputMode>,
+}
+
 fn main() {
+    let args = Args::parse();
+
     let path_to_repo = env::current_dir().expect("current dir");
-    let output = OutputMode::App;
+    let output = args.output.unwrap_or(OutputMode::StdOut);
 
     let change_map = change_count_in_path(path_to_repo);
 
