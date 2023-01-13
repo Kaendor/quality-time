@@ -54,8 +54,9 @@ pub fn create_chart(datasets: Vec<Dataset>, maximum_churn: f64, maximum_complexi
         )
 }
 
+#[cfg(test)]
 mod tests {
-    use super::complexity_churn_threshold;
+    use crate::output::app::chart::complexity_churn_threshold;
 
     #[test]
     fn threshold() {
