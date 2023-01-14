@@ -8,6 +8,7 @@ use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit};
 use crate::metrics::Churn;
 
 pub trait RepositoryExplorer {
+    // TODO: remove and use code directly in calling func
     fn commits(&self) -> Result<Vec<Commit>>;
 
     fn change_count_per_file(&self) -> Result<HashMap<String, Churn>>;
