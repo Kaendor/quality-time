@@ -5,10 +5,12 @@ use eyre::{Result, WrapErr};
 use git_repository::{discover, Repository};
 use git_repository::{objs::tree::EntryMode, traverse::tree::Recorder, Commit};
 
+use crate::metrics::Churn;
+
 pub trait RepositoryExplorer {
     fn commits(&self) -> Result<Vec<Commit>>;
 
-    fn change_count_per_file(&self) -> Result<HashMap<String, i32>>;
+    fn change_count_per_file(&self) -> Result<HashMap<String, Churn>>;
 }
 
 pub struct Gitoxide {
@@ -41,7 +43,7 @@ impl RepositoryExplorer for Gitoxide {
         Ok(commits)
     }
 
-    fn change_count_per_file(&self) -> Result<HashMap<String, i32>> {
+    fn change_count_per_file(&self) -> Result<HashMap<String, Churn>> {
         let mut change_map = HashMap::new();
 
         let commits = self
@@ -70,6 +72,11 @@ impl RepositoryExplorer for Gitoxide {
             }
         }
 
-        Ok(change_map)
+        let map = change_map
+            .into_iter()
+            .map(|(file, churn)| (file, Churn::from(churn)))
+            .collect();
+
+        Ok(map)
     }
 }

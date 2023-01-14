@@ -131,7 +131,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let metric_data: Vec<(f64, f64)> = app
         .items
         .iter()
-        .map(|metric| (metric.churn.into(), metric.complexity))
+        .map(|metric| (metric.churn.as_f64(), metric.complexity))
         .collect();
 
     let maximum_churn = metric_data
