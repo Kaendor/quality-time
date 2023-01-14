@@ -6,3 +6,6 @@ export LLVM_PROFILE_FILE := "cargo-test-%p-%m.profraw"
 
 cov:
     cargo llvm-cov nextest --lcov --output-path=lcov.info
+
+watch:
+    cargo watch -x "llvm-cov nextest --lcov --output-path=lcov.info"
