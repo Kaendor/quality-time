@@ -1,12 +1,16 @@
 [package]
 name = "quality-time"
 version = "0.1.0"
+authors = ["Dimitri Teboul <dimteboul@gmail.com>"]
 description = "Command line tool to generate actionable metrics for priorizing refactors on your rust project"
 edition = "2021"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Kaendor/quality-time"
+documentation = "https://docs.rs/quality-time"
 categories = ["command-line-utilities", "development-tools"]
+keywords = ["coverage", "churn", "complexity"]
+include = ["src/**/*.rs", "crates-io.md", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
