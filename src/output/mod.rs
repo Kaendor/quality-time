@@ -16,7 +16,7 @@ pub enum OutputMode {
     Tui,
 }
 
-pub fn print_output(output_mode: OutputMode, mut metrics: Vec<FileMetrics>) {
+pub fn print_output(output_mode: OutputMode, metrics: Vec<FileMetrics>) {
     match output_mode {
         OutputMode::StdOut => {
             let mut table = Table::new();
@@ -36,9 +36,6 @@ pub fn print_output(output_mode: OutputMode, mut metrics: Vec<FileMetrics>) {
             println!("{table}");
         }
         OutputMode::Tui => {
-            metrics.sort_by(|a, b| a.magnitude.partial_cmp(&b.magnitude).unwrap());
-
-            metrics.reverse();
             run_app(metrics);
         }
     }
