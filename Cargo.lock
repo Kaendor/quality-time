@@ -1431,6 +1431,7 @@ dependencies = [
  "eyre",
  "git-repository",
  "rust-code-analysis",
+ "tempfile",
  "tui",
 ]
 

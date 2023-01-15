@@ -128,4 +128,39 @@ mod tests {
         assert!(results[0].churn == Churn::from(1));
         assert!(results[0].complexity == 1.0);
     }
+
+    mod integration {
+        use std::fs::File;
+        use std::io::Write;
+
+        use tempfile::tempdir;
+
+        use crate::metrics::{CodeAnalysisReader, MetricReader};
+
+        #[test]
+        fn read_cyclomatic_from_file() {
+            let reader = CodeAnalysisReader::default();
+
+            let dir = tempdir().expect("temp dir obtained");
+
+            let file_path = dir.path().join("foo.rs");
+            let mut file = File::create(file_path.clone()).expect("file created");
+            writeln!(
+                file,
+                r#"fn f() {{ // +2 (+1 unit space)
+                if true {{ // +1
+                    match true {{
+                        true => println!(\"test\"), // +1
+                        false => println!(\"test\"), // +1
+                    }}
+                }}
+            }}"#
+            )
+            .expect("file written");
+
+            let metric = reader.get_cyclomatic_from_path_and_content(file_path.as_path());
+
+            metric.expect("cyclomatic complexity");
+        }
+    }
 }
