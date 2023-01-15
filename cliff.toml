@@ -46,12 +46,12 @@ commit_parsers = [
     { message = "^🐛|🚨", group = "Fixed"},
     { message = "^📝", group = "Changed"},
     { message = "^⚡️", group = "Changed"},
-    { message = "^♻️|🥅", group = "Changed"},
+    # { message = "^♻️|🥅", group = "Changed"},
     { message = "^💄", group = "Changed"},
-    { message = "^✅", group = "Changed"},
+    # { message = "^✅", group = "Changed"},
     { message = "^🔒️", group = "Changed"},
     { message = "^chore\\(release\\): prepare for", skip = true},
-    { message = "^➕|⬇️|⬆️|➖|🔨", group = "Changed"},
+    # { message = "^➕|⬇️|⬆️|➖|🔨", group = "Changed"},
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
