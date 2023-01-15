@@ -1,0 +1,46 @@
+name: Build
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  # you can enable a schedule to build
+  # schedule:
+  # - cron: '00 01 * * *'
+  jobs:
+    coverage:
+      name: Coverage
+      strategy:
+        matrix:
+          os: [ubuntu-latest]
+          rust: [stable]
+      runs-on: ${{ matrix.os }}
+      steps:
+        - name: Checkout sources
+          uses: actions/checkout@v2
+
+        - name: Install stable toolchain
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: ${{ matrix.rust }}
+            override: true
+            components: llvm-tools-preview
+         
+        - name: Setup just
+          uses: extractions/setup-just@v1
+            
+        - uses: Swatinem/rust-cache@v1
+
+        - name: Download grcov
+          run: |
+            mkdir -p "${HOME}/.local/bin"
+            curl -sL https://github.com/mozilla/grcov/releases/download/v0.8.10/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf - -C "${HOME}/.local/bin"
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
+            
+        - name: Coverage
+          run: just cov
+
+        - name: Upload to codecov.io
+          uses: codecov/codecov-action@v3
+          with:
+            files: lcov.info
