@@ -10,7 +10,7 @@ repository = "https://github.com/Kaendor/quality-time"
 documentation = "https://docs.rs/quality-time"
 categories = ["command-line-utilities", "development-tools"]
 keywords = ["coverage", "churn", "complexity"]
-include = ["src/**/*.rs", "crates-io.md", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+include = ["src/**/*.rs", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
