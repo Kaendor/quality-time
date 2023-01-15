@@ -13,26 +13,27 @@ jobs:
         os: [ubuntu-latest]
         rust: [stable]
     runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          override: true
-          components: llvm-tools-preview
+      - name: Install Rust
+        run: rustup update stable
 
       - name: Setup just
         uses: extractions/setup-just@v1
 
       - uses: Swatinem/rust-cache@v1
 
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      
       - name: Coverage
         run: just cov
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
