@@ -1,5 +1,7 @@
 # Quality Time 
 
+[![codecov](https://codecov.io/github/Kaendor/quality-time/branch/main/graph/badge.svg?token=R2G5I2VUZT)](https://codecov.io/github/Kaendor/quality-time)
+
 This project is a CLI used to gain insight on your code.
 
 It is based on Churn (number of tome a file was edited) and complexity (Cyclomatic complexity: number of branch in a function)
