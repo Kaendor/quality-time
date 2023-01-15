@@ -29,7 +29,17 @@ impl Display for Churn {
 
 pub struct CodeAnalysisReader {}
 
+impl Default for CodeAnalysisReader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CodeAnalysisReader {
+    pub fn new() -> Self {
+        Self {}
+    }
+
     fn metric_from_path_and_content(
         &self,
         content: Option<Vec<u8>>,

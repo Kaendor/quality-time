@@ -11,7 +11,7 @@ Provide simple actionable metric.
 - [ ] Add all the tests
 - [ ] Use local error type instead of expects
 - [ ] Add ignoring file possible
-- [ ] Add repo path configurable
+- [x] Add repo path configurable
 - [ ] Support more langages
 - [ ] Add time range configurable
 - [ ] Add shortcut display in TUI
