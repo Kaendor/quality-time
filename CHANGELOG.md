@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 
 - 📝 (license): add license file and update metadata
 
+- 📝 (project): add a changelog
+
+- 📝 (readme): add coverage badge on readme
+
+- 📝 (readme): add usages
+
 
 ## [0.1.0] - 2023-01-15
 
