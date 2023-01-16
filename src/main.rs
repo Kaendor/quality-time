@@ -1,6 +1,6 @@
 use clap::Parser;
 use eyre::{Context, Result};
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 use quality_time::{
     get_metrics,
@@ -25,7 +25,7 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
     let output = args.output.unwrap_or(OutputMode::StdOut);
-
+    let stdout = io::stdout();
     let git_explorer =
         Gitoxide::try_new(args.project_path).wrap_err("Unable to initialise repository")?;
 
@@ -33,7 +33,7 @@ fn main() -> Result<()> {
 
     let results = get_metrics(git_explorer, reader)?;
 
-    print_output(output, results);
+    print_output(output, results, stdout)?;
 
     Ok(())
 }

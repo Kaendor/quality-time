@@ -76,13 +76,14 @@ impl FileMetrics {
     }
 }
 
-pub fn run_app(metrics: Vec<FileMetrics>) {
+pub fn run_app(metrics: Vec<FileMetrics>, mut writer: impl std::io::Write) {
     enable_raw_mode().expect("raw mode");
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)
+
+    execute!(writer, EnterAlternateScreen, EnableMouseCapture)
         .expect("do something to the terminal");
 
-    let backend = CrosstermBackend::new(stdout);
+    let backend = CrosstermBackend::new(writer);
+
     let mut terminal = Terminal::new(backend).expect("terminal backend");
 
     let app = App::new(metrics);
@@ -95,6 +96,7 @@ pub fn run_app(metrics: Vec<FileMetrics>) {
         DisableMouseCapture
     )
     .expect("Leave alternate screen");
+
     terminal.show_cursor().expect("show cursor");
 }
 
