@@ -22,6 +22,7 @@ pub fn get_metrics(
 
     Ok(results)
 }
+
 #[cfg(test)]
 mod tests {
     use std::{collections::HashMap, path::Path};
@@ -48,10 +49,6 @@ mod tests {
             &self,
         ) -> eyre::Result<std::collections::HashMap<String, crate::metrics::Churn>> {
             Ok(HashMap::from([("file".to_string(), Churn::from(1))]))
-        }
-
-        fn commits(&self) -> eyre::Result<Vec<git_repository::Commit>> {
-            Ok(vec![])
         }
     }
 
