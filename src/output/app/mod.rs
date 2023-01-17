@@ -71,7 +71,7 @@ impl FileMetrics {
             Cell::from(self.filename.clone()),
             Cell::from(self.churn.to_string()),
             Cell::from(self.complexity.to_string()),
-            Cell::from(self.magnitude.to_string()),
+            Cell::from(self.magnitude().to_string()),
         ]
     }
 }
@@ -130,31 +130,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .selected()
         .and_then(|selected_index| app.items.get(selected_index));
 
-    let metric_data: Vec<(f64, f64)> = app
-        .items
-        .iter()
-        .map(|metric| (metric.churn.as_f64(), metric.complexity))
-        .collect();
+    let (maximum_churn, churn_sum) = get_maximum_churn_and_sum(&app.items);
+    let (maximum_complexity, complexity_sum) = get_maximum_complexity_and_sum(&app.items);
 
-    let maximum_churn = metric_data
-        .iter()
-        .max_by_key(|x| x.0.round() as i64)
-        .map(|x| x.0)
-        .unwrap_or_default()
-        + 10.0;
-
-    let churn_sum: i64 = metric_data.iter().map(|x| x.0 as i64).sum();
-    let complexity_sum: i64 = metric_data.iter().map(|x| x.1 as i64).sum();
-
-    let maximum_complexity = metric_data
-        .iter()
-        .max_by_key(|x| x.1.round() as i64)
-        .map(|x| x.1)
-        .unwrap_or_default()
-        + 10.0;
-
-    let complexity_threshold = complexity_sum as f64 / metric_data.len() as f64 / 2.0;
-    let churn_threshold: f64 = churn_sum as f64 / metric_data.len() as f64 / 2.0;
+    let complexity_threshold = complexity_sum as f64 / app.items.len() as f64 / 2.0;
+    let churn_threshold = churn_sum as f64 / app.items.len() as f64 / 2.0;
 
     let threshold_points: Vec<(f64, f64)> = (1..(maximum_churn as i64 + 10))
         .into_iter()
@@ -167,36 +147,144 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .collect();
 
     let selected_point: Vec<(f64, f64)> = selected_metric
-        .map(|metric| metric.to_point())
+        .cloned()
         .into_iter()
+        .map(|m| m.to_point())
         .collect();
-
-    let metric_data: Vec<_> = metric_data
-        .into_iter()
-        .filter(|metric| Some(metric) != selected_metric.map(|f| f.to_point()).as_ref())
-        .collect();
-
-    let datasets = vec![
-        Dataset::default()
-            .marker(symbols::Marker::Dot)
-            .style(Style::default().fg(Color::DarkGray))
-            .graph_type(GraphType::Line)
-            .data(&threshold_points),
-        Dataset::default()
-            .marker(symbols::Marker::Dot)
-            .style(
-                Style::default()
-                    .fg(Color::Green)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .data(&metric_data),
-        Dataset::default()
-            .marker(symbols::Marker::Block)
-            .style(Style::default().fg(Color::Magenta))
-            .graph_type(GraphType::Scatter)
-            .data(&selected_point),
-    ];
-
+    let points: Vec<_> = app.items.iter().map(|m| m.to_point()).collect();
+    let metric_data = filter_out_selected_metric(&points, &selected_point);
+    let datasets = create_datasets(&threshold_points, &metric_data, &selected_point);
     let graph = create_chart(datasets, maximum_churn, maximum_complexity);
     f.render_widget(graph, rects[1]);
+}
+
+fn get_maximum_churn_and_sum(metric_data: &[FileMetrics]) -> (f64, f64) {
+    let maximum_churn = metric_data
+        .iter()
+        .max_by_key(|x| x.churn.as_f64() as i64)
+        .map(|x| x.churn.as_f64() + 10.0)
+        .unwrap_or(10.0);
+    let churn_sum: i64 = metric_data.iter().map(|x| x.churn.as_f64() as i64).sum();
+    (maximum_churn, churn_sum as f64)
+}
+
+fn get_maximum_complexity_and_sum(metric_data: &[FileMetrics]) -> (f64, f64) {
+    let maximum_complexity = metric_data
+        .iter()
+        .max_by_key(|x| x.complexity.round() as i64)
+        .map(|x| x.complexity)
+        .unwrap_or_default()
+        + 10.0;
+    let complexity_sum: i64 = metric_data.iter().map(|x| x.complexity as i64).sum();
+    (maximum_complexity, complexity_sum as f64)
+}
+
+fn filter_out_selected_metric(
+    metric_data: &[(f64, f64)],
+    selected_metric: &[(f64, f64)],
+) -> Vec<(f64, f64)> {
+    metric_data
+        .into_iter()
+        .filter(|metric| !selected_metric.contains(metric))
+        .cloned()
+        .collect()
+}
+
+fn create_datasets<'a>(
+    threshold_points: &'a [(f64, f64)],
+    metric_data: &'a [(f64, f64)],
+    selected_point: &'a [(f64, f64)],
+) -> Vec<Dataset<'a>> {
+    let threshold_points = Dataset::default()
+        .marker(symbols::Marker::Dot)
+        .style(Style::default().fg(Color::DarkGray))
+        .graph_type(GraphType::Line)
+        .data(threshold_points);
+    let metric_data = Dataset::default()
+        .marker(symbols::Marker::Dot)
+        .style(
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )
+        .data(metric_data);
+    let selected_point = Dataset::default()
+        .marker(symbols::Marker::Block)
+        .style(Style::default().fg(Color::Magenta))
+        .graph_type(GraphType::Scatter)
+        .data(selected_point);
+    vec![threshold_points, metric_data, selected_point]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::metrics::{Churn, FileMetrics};
+
+    #[test]
+    fn test_get_maximum_churn_and_sum() {
+        let metric_data = vec![
+            FileMetrics {
+                churn: Churn::from(15),
+                complexity: 20.0,
+                filename: "todo!()".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(10),
+                complexity: 30.0,
+                filename: "todo!()".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(20),
+                complexity: 10.0,
+                filename: "todo!()".to_string(),
+            },
+        ];
+        let (maximum_churn, sum) = get_maximum_churn_and_sum(&metric_data);
+        assert_eq!(maximum_churn, 30.0);
+        assert_eq!(sum, 45.0);
+    }
+
+    #[test]
+    fn test_get_maximum_complexity_and_sum() {
+        let metric_data = vec![
+            FileMetrics {
+                churn: Churn::from(15),
+                complexity: 20.0,
+                filename: "todo!()".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(10),
+                complexity: 30.0,
+                filename: "todo!()".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(20),
+                complexity: 10.0,
+                filename: "todo!()".to_string(),
+            },
+        ];
+        let (maximum_complexity, sum) = get_maximum_complexity_and_sum(&metric_data);
+        assert_eq!(maximum_complexity, 40.0);
+        assert_eq!(sum, 60.0);
+    }
+
+    #[test]
+    fn test_filter_out_selected_metric() {
+        let metric_data = vec![(15.0, 20.0), (10.0, 30.0), (20.0, 10.0)];
+        let selected_metric = vec![(20.0, 10.0)];
+
+        let result = filter_out_selected_metric(&metric_data, &selected_metric);
+        assert_eq!(result, vec![(15.0, 20.0), (10.0, 30.0)]);
+    }
+
+    #[test]
+    fn test_create_datasets() {
+        let threshold_points = vec![(1.0, 2.0), (3.0, 4.0)];
+        let metric_data = vec![(15.0, 20.0), (10.0, 30.0)];
+
+        let selected_point = vec![(20.0, 10.0)];
+        let result = create_datasets(&threshold_points, &metric_data, &selected_point);
+        assert_eq!(result.len(), 3);
+    }
 }

@@ -6,7 +6,7 @@ pub trait MetricReader {
     fn get_cyclomatic_from_path_and_content(&self, path: &Path) -> Option<f64>;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Churn(i32);
 
 impl Churn {
@@ -64,21 +64,23 @@ pub struct FileMetrics {
     pub filename: String,
     pub churn: Churn,
     pub complexity: f64,
-    pub magnitude: f64,
 }
 
 impl FileMetrics {
     pub fn new(filename: String, churn: Churn, complexity: f64) -> Self {
-        let origin = (0.0, 0.0);
-        let distance_to_origin =
-            ((origin.0 - churn.as_f64()).powi(2) + (origin.1 - complexity as f64).powi(2)).sqrt();
-
         Self {
             filename,
             churn,
             complexity,
-            magnitude: distance_to_origin,
         }
+    }
+
+    pub fn magnitude(&self) -> f64 {
+        let origin = (0.0, 0.0);
+        let distance_to_origin = ((origin.0 - self.churn.as_f64()).powi(2)
+            + (origin.1 - self.complexity as f64).powi(2))
+        .sqrt();
+        distance_to_origin
     }
 
     pub fn to_point(&self) -> (f64, f64) {
