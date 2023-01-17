@@ -1,4 +1,4 @@
-use crate::metrics::FileMetrics;
+use crate::metrics::ProjectMetrics;
 use clap::ValueEnum;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
@@ -19,7 +19,7 @@ pub enum OutputMode {
 
 pub fn print_output(
     output_mode: OutputMode,
-    metrics: Vec<FileMetrics>,
+    metrics: ProjectMetrics,
     mut writer: impl std::io::Write,
 ) -> Result<()> {
     match output_mode {
@@ -30,7 +30,7 @@ pub fn print_output(
                 .load_preset(UTF8_FULL)
                 .apply_modifier(UTF8_ROUND_CORNERS);
 
-            for metric in metrics.iter() {
+            for metric in metrics.file_metrics().iter() {
                 table.add_row(vec![
                     &metric.filename,
                     &metric.churn.to_string(),
@@ -50,7 +50,7 @@ pub fn print_output(
 
 #[cfg(test)]
 mod tests {
-    use crate::metrics::{Churn, FileMetrics};
+    use crate::metrics::{Churn, FileMetrics, ProjectMetrics};
 
     use super::print_output;
 
@@ -58,7 +58,12 @@ mod tests {
     fn display_to_stdout() {
         let metrics = vec![FileMetrics::new("foo.rs".to_string(), Churn::from(1), 1.0)];
         let mut writer = vec![];
-        print_output(super::OutputMode::StdOut, metrics, &mut writer).expect("print in writer");
+        print_output(
+            super::OutputMode::StdOut,
+            ProjectMetrics::new(metrics),
+            &mut writer,
+        )
+        .expect("print in writer");
 
         assert!(!writer.is_empty());
 

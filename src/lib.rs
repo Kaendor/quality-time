@@ -1,8 +1,6 @@
+use crate::metrics::{metrics_per_file, MetricReader, ProjectMetrics};
 use eyre::{Context, Result};
 use git::RepositoryExplorer;
-use metrics::{FileMetrics, MetricReader};
-
-use crate::metrics::metrics_per_file;
 
 pub mod git;
 pub mod metrics;
@@ -11,7 +9,7 @@ pub mod output;
 pub fn get_metrics(
     git_explorer: impl RepositoryExplorer,
     reader: impl MetricReader,
-) -> Result<Vec<FileMetrics>> {
+) -> Result<ProjectMetrics> {
     let change_map = git_explorer
         .change_count_per_file()
         .wrap_err("Unable to obtain the change count per file")?;
@@ -20,7 +18,7 @@ pub fn get_metrics(
     results.sort_by(|a, b| a.magnitude().partial_cmp(&b.magnitude()).unwrap());
     results.reverse();
 
-    Ok(results)
+    Ok(ProjectMetrics::new(results))
 }
 
 #[cfg(test)]
@@ -56,6 +54,6 @@ mod tests {
     fn list_metrics() {
         let metrics = get_metrics(TestExplorer {}, TestReader {}).expect("metrics");
 
-        assert!(!metrics.is_empty())
+        assert!(!metrics.file_metrics().is_empty())
     }
 }

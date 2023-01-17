@@ -66,6 +66,47 @@ pub struct FileMetrics {
     pub complexity: f64,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProjectMetrics {
+    file_metrics: Vec<FileMetrics>,
+}
+
+impl ProjectMetrics {
+    pub fn new(metrics: Vec<FileMetrics>) -> Self {
+        Self {
+            file_metrics: metrics,
+        }
+    }
+
+    pub fn file_metrics(&self) -> &Vec<FileMetrics> {
+        &self.file_metrics
+    }
+
+    pub fn maximum_churn(&self) -> f64 {
+        self.file_metrics
+            .iter()
+            .max_by_key(|x| x.churn.as_f64() as i64)
+            .map(|x| x.churn.as_f64() + 10.0)
+            .unwrap_or(10.0)
+    }
+
+    pub fn churn_sum(&self) -> f64 {
+        self.file_metrics.iter().map(|x| x.churn.as_f64()).sum()
+    }
+
+    pub fn maximum_complexity(&self) -> f64 {
+        self.file_metrics
+            .iter()
+            .max_by_key(|x| x.complexity.round() as i64)
+            .map(|x| x.complexity)
+            .unwrap_or_default()
+    }
+
+    pub fn complexity_sum(&self) -> f64 {
+        self.file_metrics.iter().map(|x| x.complexity).sum()
+    }
+}
+
 impl FileMetrics {
     pub fn new(filename: String, churn: Churn, complexity: f64) -> Self {
         Self {
@@ -110,7 +151,7 @@ mod tests {
 
     use crate::metrics::Churn;
 
-    use super::{metrics_per_file, MetricReader};
+    use super::{metrics_per_file, FileMetrics, MetricReader, ProjectMetrics};
 
     struct TestReader {}
 
@@ -118,6 +159,47 @@ mod tests {
         fn get_cyclomatic_from_path_and_content(&self, _path: &Path) -> Option<f64> {
             Some(1.0)
         }
+    }
+
+    #[test]
+    fn project_metric_compute() {
+        let metric_data = vec![
+            FileMetrics {
+                churn: Churn::from(15),
+                complexity: 20.0,
+                filename: "foo.rs".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(10),
+                complexity: 30.0,
+                filename: "foo.rs".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(20),
+                complexity: 10.0,
+                filename: "foo.rs".to_string(),
+            },
+        ];
+
+        let metrics = ProjectMetrics::new(metric_data);
+        let max_churn = metrics.maximum_churn();
+        let sum_churn = metrics.churn_sum();
+
+        let max_complexity = metrics.maximum_complexity();
+        let sum_complexity = metrics.complexity_sum();
+
+        assert_eq!(sum_churn, 45.0);
+        assert_eq!(max_churn, 30.0);
+
+        assert_eq!(max_complexity, 30.0);
+        assert_eq!(sum_complexity, 60.0);
+    }
+
+    #[test]
+    fn magnitude() {
+        let metric = FileMetrics::new("foo.rs".to_string(), Churn::from(2), 2.0);
+
+        assert_eq!(metric.magnitude(), 2.8284271247461903)
     }
 
     #[test]

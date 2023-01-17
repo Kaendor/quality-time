@@ -13,7 +13,7 @@ use tui::{
     Frame, Terminal,
 };
 
-use crate::metrics::FileMetrics;
+use crate::metrics::{FileMetrics, ProjectMetrics};
 
 use self::{
     chart::{complexity_churn_threshold, create_chart},
@@ -25,21 +25,21 @@ mod table;
 
 pub struct App {
     state: TableState,
-    items: Vec<FileMetrics>,
+    metrics: ProjectMetrics,
 }
 
 impl App {
-    fn new(metrics: Vec<FileMetrics>) -> Self {
+    fn new(metrics: ProjectMetrics) -> Self {
         App {
             state: TableState::default(),
-            items: metrics,
+            metrics,
         }
     }
 
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.items.len() - 1 {
+                if i >= self.metrics.file_metrics().len() - 1 {
                     0
                 } else {
                     i + 1
@@ -54,7 +54,7 @@ impl App {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
-                    self.items.len() - 1
+                    self.metrics.file_metrics().len() - 1
                 } else {
                     i - 1
                 }
@@ -76,7 +76,7 @@ impl FileMetrics {
     }
 }
 
-pub fn run_app(metrics: Vec<FileMetrics>, mut writer: impl std::io::Write) {
+pub fn run_app(metrics: ProjectMetrics, mut writer: impl std::io::Write) {
     enable_raw_mode().expect("raw mode");
 
     execute!(writer, EnterAlternateScreen, EnableMouseCapture)
@@ -122,19 +122,22 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .margin(1)
         .split(f.size());
 
-    let t = file_table(&app.items);
+    let t = file_table(&app.metrics.file_metrics());
     f.render_stateful_widget(t, rects[0], &mut app.state);
 
     let selected_metric = app
         .state
         .selected()
-        .and_then(|selected_index| app.items.get(selected_index));
+        .and_then(|selected_index| app.metrics.file_metrics().get(selected_index));
 
-    let (maximum_churn, churn_sum) = get_maximum_churn_and_sum(&app.items);
-    let (maximum_complexity, complexity_sum) = get_maximum_complexity_and_sum(&app.items);
+    let churn_sum = app.metrics.churn_sum();
+    let maximum_churn = app.metrics.maximum_churn();
+    let maximum_complexity = app.metrics.maximum_complexity();
+    let complexity_sum = app.metrics.complexity_sum();
 
-    let complexity_threshold = complexity_sum as f64 / app.items.len() as f64 / 2.0;
-    let churn_threshold = churn_sum as f64 / app.items.len() as f64 / 2.0;
+    let complexity_threshold =
+        complexity_sum as f64 / app.metrics.file_metrics().len() as f64 / 2.0;
+    let churn_threshold = churn_sum as f64 / app.metrics.file_metrics().len() as f64 / 2.0;
 
     let threshold_points: Vec<(f64, f64)> = (1..(maximum_churn as i64 + 10))
         .into_iter()
@@ -151,32 +154,16 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .into_iter()
         .map(|m| m.to_point())
         .collect();
-    let points: Vec<_> = app.items.iter().map(|m| m.to_point()).collect();
+    let points: Vec<_> = app
+        .metrics
+        .file_metrics()
+        .iter()
+        .map(|m| m.to_point())
+        .collect();
     let metric_data = filter_out_selected_metric(&points, &selected_point);
     let datasets = create_datasets(&threshold_points, &metric_data, &selected_point);
-    let graph = create_chart(datasets, maximum_churn, maximum_complexity);
+    let graph = create_chart(datasets, maximum_churn, maximum_complexity + 10.0);
     f.render_widget(graph, rects[1]);
-}
-
-fn get_maximum_churn_and_sum(metric_data: &[FileMetrics]) -> (f64, f64) {
-    let maximum_churn = metric_data
-        .iter()
-        .max_by_key(|x| x.churn.as_f64() as i64)
-        .map(|x| x.churn.as_f64() + 10.0)
-        .unwrap_or(10.0);
-    let churn_sum: i64 = metric_data.iter().map(|x| x.churn.as_f64() as i64).sum();
-    (maximum_churn, churn_sum as f64)
-}
-
-fn get_maximum_complexity_and_sum(metric_data: &[FileMetrics]) -> (f64, f64) {
-    let maximum_complexity = metric_data
-        .iter()
-        .max_by_key(|x| x.complexity.round() as i64)
-        .map(|x| x.complexity)
-        .unwrap_or_default()
-        + 10.0;
-    let complexity_sum: i64 = metric_data.iter().map(|x| x.complexity as i64).sum();
-    (maximum_complexity, complexity_sum as f64)
 }
 
 fn filter_out_selected_metric(
@@ -219,55 +206,6 @@ fn create_datasets<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::metrics::{Churn, FileMetrics};
-
-    #[test]
-    fn test_get_maximum_churn_and_sum() {
-        let metric_data = vec![
-            FileMetrics {
-                churn: Churn::from(15),
-                complexity: 20.0,
-                filename: "todo!()".to_string(),
-            },
-            FileMetrics {
-                churn: Churn::from(10),
-                complexity: 30.0,
-                filename: "todo!()".to_string(),
-            },
-            FileMetrics {
-                churn: Churn::from(20),
-                complexity: 10.0,
-                filename: "todo!()".to_string(),
-            },
-        ];
-        let (maximum_churn, sum) = get_maximum_churn_and_sum(&metric_data);
-        assert_eq!(maximum_churn, 30.0);
-        assert_eq!(sum, 45.0);
-    }
-
-    #[test]
-    fn test_get_maximum_complexity_and_sum() {
-        let metric_data = vec![
-            FileMetrics {
-                churn: Churn::from(15),
-                complexity: 20.0,
-                filename: "todo!()".to_string(),
-            },
-            FileMetrics {
-                churn: Churn::from(10),
-                complexity: 30.0,
-                filename: "todo!()".to_string(),
-            },
-            FileMetrics {
-                churn: Churn::from(20),
-                complexity: 10.0,
-                filename: "todo!()".to_string(),
-            },
-        ];
-        let (maximum_complexity, sum) = get_maximum_complexity_and_sum(&metric_data);
-        assert_eq!(maximum_complexity, 40.0);
-        assert_eq!(sum, 60.0);
-    }
 
     #[test]
     fn test_filter_out_selected_metric() {
