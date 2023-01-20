@@ -205,6 +205,8 @@ fn create_datasets<'a>(
 
 #[cfg(test)]
 mod tests {
+    use crate::Churn;
+
     use super::*;
 
     #[test]
@@ -224,5 +226,79 @@ mod tests {
         let selected_point = vec![(20.0, 10.0)];
         let result = create_datasets(&threshold_points, &metric_data, &selected_point);
         assert_eq!(result.len(), 3);
+    }
+
+    #[test]
+    fn app_selection_next() {
+        let metric_data = vec![
+            FileMetrics {
+                churn: Churn::from(15),
+                complexity: 20.0,
+                filename: "foo.rs".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(10),
+                complexity: 30.0,
+                filename: "foo.rs".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(20),
+                complexity: 10.0,
+                filename: "foo.rs".to_string(),
+            },
+        ];
+
+        let metrics = ProjectMetrics::new(metric_data);
+
+        let mut app = App::new(metrics);
+
+        assert!(app.state.selected().is_none());
+
+        app.next();
+
+        assert!(app.state.selected().is_some());
+
+        app.next();
+        app.next();
+        app.next();
+
+        assert!(app.state.selected().is_some());
+    }
+
+    #[test]
+    fn app_selection_previous() {
+        let metric_data = vec![
+            FileMetrics {
+                churn: Churn::from(15),
+                complexity: 20.0,
+                filename: "foo.rs".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(10),
+                complexity: 30.0,
+                filename: "foo.rs".to_string(),
+            },
+            FileMetrics {
+                churn: Churn::from(20),
+                complexity: 10.0,
+                filename: "foo.rs".to_string(),
+            },
+        ];
+
+        let metrics = ProjectMetrics::new(metric_data);
+
+        let mut app = App::new(metrics);
+
+        assert!(app.state.selected().is_none());
+
+        app.previous();
+
+        assert!(app.state.selected().is_some());
+
+        app.previous();
+        app.previous();
+        app.previous();
+
+        assert!(app.state.selected().is_some());
     }
 }
