@@ -33,3 +33,29 @@ pub fn file_table(items: &[FileMetrics]) -> Table {
             Constraint::Min(5),
         ])
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Churn;
+
+    use super::*;
+
+    // This tests nothing but Table is not a testable struct since all fields are private and no method allow access.
+    #[test]
+    fn create_file_table() {
+        let items = vec![
+            FileMetrics {
+                filename: "file1.txt".to_string(),
+                churn: Churn::from(15),
+                complexity: 20.0,
+            },
+            FileMetrics {
+                filename: "file2.txt".to_string(),
+                churn: Churn::from(10),
+                complexity: 30.0,
+            },
+        ];
+
+        let _table = file_table(&items);
+    }
+}
